@@ -28,6 +28,23 @@ app.get("/", (req, res) => {
 
 async function run() {
   try {
+    const db = client.db("digitalLife_db");
+    const lessonsCollection = db.collection("lessons");
+
+    // lessons apis.................
+    app.get("/lessons", async (req, res) => {
+      const query = {};
+      const { email } = req.query;
+      if (email) {
+        query.creatorEmail = email;
+      }
+
+      const cursor = lessonsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
