@@ -31,19 +31,79 @@ async function run() {
     const db = client.db("digitalLife_db");
     const lessonsCollection = db.collection("lessons");
 
-    // lessons apis.................
+    // GET /lessons - public + private
     app.get("/lessons", async (req, res) => {
-      const query = {};
-      const { email } = req.query;
-      if (email) {
-        query.creatorEmail = email;
+      try {
+        const {
+          search = "",
+          category = "",
+          tone = "",
+          sort = "newest",
+          page = 1,
+          limit = 12,
+          access = "all",
+        } = req.query;
+
+        const currentUserEmail = req.user?.email;
+        const isPremium = req.user?.isPremium || false;
+
+        let query = { visibility: "public" };
+
+        // search by title or description
+        if (search) {
+          query.$or = [
+            { title: { $regex: search, $options: "i" } },
+            { shortDescription: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        // category filter
+        if (category && category !== "all") {
+          query.category = category;
+        }
+
+        // emotional tone filter
+        if (tone && tone !== "all") {
+          query.emotionalTone = tone;
+        }
+
+        // access level free / premium
+        if (!isPremium) {
+          query.accessLevel = "free";
+        } else if (access !== "all") {
+          query.accessLevel = access;
+        }
+
+        // sort
+        let sortOption = { createdAt: -1 };
+        if (sort === "mostSaved") {
+          sortOption = { saveCount: -1 };
+        } else if (sort === "mostLiked") {
+          sortOption = { likes: -1 };
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const result = await lessonsCollection
+          .find(query)
+          .sort(sortOption)
+          .skip(skip)
+          .limit(parseInt(limit))
+          .toArray();
+
+        const total = await lessonsCollection.countDocuments(query);
+
+        res.send({
+          lessons: result,
+          total,
+          page: parseInt(page),
+          totalPages: Math.ceil(total / parseInt(limit)),
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Server error" });
       }
-
-      const cursor = lessonsCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
     });
-
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
