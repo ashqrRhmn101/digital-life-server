@@ -153,9 +153,22 @@ async function run() {
       );
       res.send(result);
     });
-    
 
-    // Send a ping to confirm a successful connection
+    // POST /lessons/:id/report - report lesson
+    app.post("/lessons/:id/report", async (req, res) => {
+      const id = req.params.id;
+      const { reporterId, reason } = req.body;
+      const report = {
+        lessonId: id,
+        reporterId,
+        reason,
+        timestamp: new Date(),
+      };
+      await reportsCollection.insertOne(report);
+      res.send({ success: true });
+    });
+
+    // Send a ping to confirm a successful connection...............
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
