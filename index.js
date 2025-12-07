@@ -178,6 +178,15 @@ async function run() {
       res.send(result);
     });
 
+    // POST /lessons/:id/comments - Post comment
+    app.post("/lessons/:id/comments", async (req, res) => {
+      const id = req.params.id;
+      const { userId, text } = req.body;
+      const comment = { lessonId: id, userId, text, createdAt: new Date() };
+      await commentsCollection.insertOne(comment);
+      res.send(comment);
+    });
+    
 
     // Send a ping to confirm a successful connection...............
     await client.db("admin").command({ ping: 1 });
