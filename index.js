@@ -30,6 +30,9 @@ async function run() {
   try {
     const db = client.db("digitalLife_db");
     const lessonsCollection = db.collection("lessons");
+    const usersCollection = db.collection("users");
+    const reportsCollection = db.collection("report");
+    const commentsCollection = db.collection("comments");
 
     // GET - public + private
     app.get("/lessons", async (req, res) => {
@@ -105,24 +108,24 @@ async function run() {
       }
     });
 
-    // GET id
-    app.get("/lessons/:id", async (req, res) => {
-      const id = req.params.id;
-      const result = await lessonsCollection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        { $inc: { views: 1 } },
-        { returnDocument: "after" }
-      );
-      res.send(result.value);
-    });
-
-    // //  get Id
+    // // GET id by findOneAndUpdate
     // app.get("/lessons/:id", async (req, res) => {
     //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-    //   const result = await lessonsCollection.findOne(query);
-    //   res.send(result);
+    //   const result = await lessonsCollection.findOneAndUpdate(
+    //     { _id: new ObjectId(id) },
+    //     { $inc: { views: 1 } },
+    //     { returnDocument: "after" }
+    //   );
+    //   res.send(result.value);
     // });
+
+    //  get Id
+    app.get("/lessons/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await lessonsCollection.findOne(query);
+      res.send(result);
+    });
 
     // POST by /lessons/:id/like - like and unlike
     app.post("/lessons/:id/like", async (req, res) => {
@@ -197,6 +200,14 @@ async function run() {
       };
       const result = await lessonsCollection.find(query).limit(6).toArray();
       res.send(result);
+    });
+
+    /// User related apis...............
+    // GET /user - Fetch user with role and premium
+    app.get("/users", async (req, res) => {
+      const email = req.query.email;
+      const user = await usersCollection.findOne({ email });
+      res.send(user);
     });
 
     // Send a ping to confirm a successful connection...............
