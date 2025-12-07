@@ -139,6 +139,22 @@ async function run() {
       res.send(result);
     });
 
+    // POST /lessons/:id/save
+    app.post("/lessons/:id/save", async (req, res) => {
+      const id = req.params.id;
+      const { userId, action } = req.body;
+      const update =
+        action === "save"
+          ? { $addToSet: { savesArray: userId }, $inc: { saveCount: 1 } }
+          : { $pull: { savesArray: userId }, $inc: { saveCount: -1 } };
+      const result = await lessonsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        update
+      );
+      res.send(result);
+    });
+    
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
