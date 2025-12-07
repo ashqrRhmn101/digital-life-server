@@ -168,6 +168,17 @@ async function run() {
       res.send({ success: true });
     });
 
+    // GET /lessons/:id/comments - fetch comments
+    app.get("/lessons/:id/comments", async (req, res) => {
+      const id = req.params.id;
+      const result = await commentsCollection
+        .find({ lessonId: id })
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+
     // Send a ping to confirm a successful connection...............
     await client.db("admin").command({ ping: 1 });
     console.log(
