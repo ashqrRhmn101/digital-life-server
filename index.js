@@ -205,10 +205,31 @@ async function run() {
 
     /// User related apis...............
     // GET /user - Fetch user with role and premium
-    app.get("/users", async (req, res) => {
+    app.get("/user", async (req, res) => {
       const email = req.query.email;
       const user = await usersCollection.findOne({ email });
       res.send(user);
+    });
+
+    // GET /user + create role isPremium/not
+    app.get("/user", async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.status(400).send({ message: "Email required" });
+
+      const result = await usersCollection.findOne({ email });
+      if (!result) {
+        // isNot user , create new user
+        const newUser = {
+          email,
+          role: "user",
+          isPremium: false,
+          createdAt: new Date(),
+        };
+        await usersCollection.insertOne(newUser);
+        return res.send(newUser);
+      }
+
+      res.send(result);
     });
 
     // GET /user-stats
