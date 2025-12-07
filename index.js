@@ -31,7 +31,7 @@ async function run() {
     const db = client.db("digitalLife_db");
     const lessonsCollection = db.collection("lessons");
 
-    // GET /lessons - public + private
+    // GET - public + private
     app.get("/lessons", async (req, res) => {
       try {
         const {
@@ -103,6 +103,17 @@ async function run() {
         console.error(error);
         res.status(500).send({ message: "Server error" });
       }
+    });
+
+    // GET id 
+    app.get("/lessons/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await lessonsCollection.findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $inc: { views: 1 } },
+        { returnDocument: "after" }
+      );
+      res.send(result.value);
     });
 
     // Send a ping to confirm a successful connection
