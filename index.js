@@ -186,7 +186,18 @@ async function run() {
       await commentsCollection.insertOne(comment);
       res.send(comment);
     });
-    
+
+    // GET /recommended-lessons
+    app.get("/recommended-lessons", async (req, res) => {
+      const { category, tone, excludeId } = req.query;
+      const query = {
+        category,
+        emotionalTone: tone,
+        _id: { $ne: new ObjectId(excludeId) },
+      };
+      const result = await lessonsCollection.find(query).limit(6).toArray();
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection...............
     await client.db("admin").command({ ping: 1 });
