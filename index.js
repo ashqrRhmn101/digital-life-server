@@ -105,7 +105,7 @@ async function run() {
       }
     });
 
-    // GET id 
+    // GET id
     app.get("/lessons/:id", async (req, res) => {
       const id = req.params.id;
       const result = await lessonsCollection.findOneAndUpdate(
@@ -114,6 +114,21 @@ async function run() {
         { returnDocument: "after" }
       );
       res.send(result.value);
+    });
+
+    // POST by /lessons/:id/like - like and unlike
+    app.post("/lessons/:id/like", async (req, res) => {
+      const id = req.params.id;
+      const { userId, action } = req.body;
+      const update =
+        action === "like"
+          ? { $addToSet: { likesArray: userId }, $inc: { likes: 1 } }
+          : { $pull: { likesArray: userId }, $inc: { likes: -1 } };
+      const result = await lessonsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        update
+      );
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
