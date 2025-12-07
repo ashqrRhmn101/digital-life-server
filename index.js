@@ -33,6 +33,7 @@ async function run() {
     const usersCollection = db.collection("users");
     const reportsCollection = db.collection("report");
     const commentsCollection = db.collection("comments");
+    const favoritesCollection = db.collection("favorites");
 
     // GET - public + private
     app.get("/lessons", async (req, res) => {
@@ -208,6 +209,23 @@ async function run() {
       const email = req.query.email;
       const user = await usersCollection.findOne({ email });
       res.send(user);
+    });
+
+    // GET /user-stats
+    app.get("/user-stats", async (req, res) => {
+      const email = req.query.email;
+      const totalLessons = await lessonsCollection.countDocuments({
+        creatorEmail: email,
+      });
+      const totalFavorites = await favoritesCollection.countDocuments({
+        userEmail: email,
+      });
+      const recentLessons = await lessonsCollection
+        .find({ creatorEmail: email })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .toArray();
+      res.send({ totalLessons, totalFavorites, recentLessons });
     });
 
     // Send a ping to confirm a successful connection...............
