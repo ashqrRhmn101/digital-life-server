@@ -4,7 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const port = process.env.PORT || 3000;
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 // middleware
 app.use(express.json());
@@ -115,6 +115,14 @@ async function run() {
       );
       res.send(result.value);
     });
+
+    // //  get Id
+    // app.get("/lessons/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await lessonsCollection.findOne(query);
+    //   res.send(result);
+    // });
 
     // POST by /lessons/:id/like - like and unlike
     app.post("/lessons/:id/like", async (req, res) => {
