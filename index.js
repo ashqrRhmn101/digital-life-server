@@ -204,49 +204,123 @@ async function run() {
     });
 
     /// User related apis...............
-    // GET /user - Fetch user with role and premium
-    app.get("/user", async (req, res) => {
-      const email = req.query.email;
-      const user = await usersCollection.findOne({ email });
-      res.send(user);
-    });
+    // ==================== USER RELATED APIs ====================
 
-    // GET /user + create role isPremium/not
+    //  gte fetch or create User
     app.get("/user", async (req, res) => {
-      const email = req.query.email;
-      if (!email) return res.status(400).send({ message: "Email required" });
+      try {
+        const email = req.query.email;
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
 
-      const result = await usersCollection.findOne({ email });
-      if (!result) {
-        // isNot user , create new user
-        const newUser = {
-          email,
-          role: "user",
-          isPremium: false,
-          createdAt: new Date(),
-        };
-        await usersCollection.insertOne(newUser);
-        return res.send(newUser);
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          // new user auto create (Register/Login/Google)
+          const newUser = {
+            email,
+            name: "",
+            photoURL: "",
+            role: "user",
+            isPremium: false,
+            createdAt: new Date(),
+            lastLoginAt: new Date(),
+          };
+          const result = await usersCollection.insertOne(newUser);
+          return res.status(201).json({ ...newUser, _id: result.insertedId });
+        }
+
+        // lastLoginAt
+        await usersCollection.updateOne(
+          { email },
+          { $set: { lastLoginAt: new Date() } }
+        );
+
+        res.json(user);
+      } catch (error) {
+        console.error("Error in /user:", error);
+        res.status(500).json({ message: "Server error" });
       }
-
-      res.send(result);
     });
 
-    // GET /user-stats
+    // Upsert User (register + google login )
+    app.put("/users", async (req, res) => {
+      try {
+        const userData = req.body;
+        const { email } = userData;
+
+        if (!email) {
+          return res.status(400).json({ message: "Email is required" });
+        }
+
+        const result = await usersCollection.updateOne(
+          { email },
+          {
+            $set: {
+              name: userData.name,
+              photoURL: userData.photoURL,
+              lastLoginAt: new Date(),
+            },
+            $setOnInsert: {
+              email: userData.email,
+              role: "user",
+              isPremium: false,
+              createdAt: new Date(),
+            },
+          },
+          { upsert: true }
+        );
+
+        res.json({
+          success: true,
+          upserted: result.upsertedId ? true : false,
+          message: result.upsertedId
+            ? "User created successfully"
+            : "User updated successfully",
+        });
+      } catch (error) {
+        console.error("Error in PUT /users:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+
+    // By Dashboard
     app.get("/user-stats", async (req, res) => {
-      const email = req.query.email;
-      const totalLessons = await lessonsCollection.countDocuments({
-        creatorEmail: email,
-      });
-      const totalFavorites = await favoritesCollection.countDocuments({
-        userEmail: email,
-      });
-      const recentLessons = await lessonsCollection
-        .find({ creatorEmail: email })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .toArray();
-      res.send({ totalLessons, totalFavorites, recentLessons });
+      try {
+        const email = req.query.email;
+        if (!email) return res.status(400).json({ message: "Email required" });
+
+        const [totalLessons, totalFavorites, recentLessons] = await Promise.all(
+          [
+            lessonsCollection.countDocuments({ creatorEmail: email }),
+            favoritesCollection.countDocuments({ userEmail: email }),
+            lessonsCollection
+              .find({ creatorEmail: email })
+              .sort({ createdAt: -1 })
+              .limit(6)
+              .project({ title: 1, category: 1, createdAt: 1, likes: 1 })
+              .toArray(),
+          ]
+        );
+
+        res.json({
+          totalLessons,
+          totalFavorites,
+          recentLessons,
+        });
+      } catch (error) {
+        console.error("Error in /user-stats:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+
+    // is's a optional — Admin check
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email });
+      const isAdmin = user?.role === "admin";
+      res.json({ isAdmin });
     });
 
     // Send a ping to confirm a successful connection...............
