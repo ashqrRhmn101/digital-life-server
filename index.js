@@ -203,6 +203,39 @@ async function run() {
       res.send(result);
     });
 
+     // ==================== FAVORITES ====================
+    // POST /favorites - Save to favorites
+    app.post("/favorites", async (req, res) => {
+      try {
+        const { userEmail, lessonId } = req.body;
+
+        const existing = await favoritesCollection.findOne({
+          userEmail,
+          lessonId,
+        });
+        if (existing) {
+          return res.status(400).json({ message: "Already saved" });
+        }
+
+        await favoritesCollection.insertOne({
+          userEmail,
+          lessonId,
+          createdAt: new Date(),
+        });
+
+        // Increase saveCount
+        await lessonsCollection.updateOne(
+          { _id: new ObjectId(lessonId) },
+          { $inc: { saveCount: 1 }, $addToSet: { savesArray: userEmail } }
+        );
+
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Save favorite error:", error);
+        res.status(500).json({ message: "Failed to save" });
+      }
+    });
+
     /// User related apis...............
     // ==================== USER RELATED APIs ====================
 
